@@ -2,6 +2,7 @@ const { ApolloServer, gql } = require("apollo-server");
 
 
 const typeDefs = gql`
+
   type UserType {
     _id: String
     name: String
@@ -19,21 +20,22 @@ const typeDefs = gql`
   }
 
   type Query {
-    user(email: String!, password: String!): String
     contact(_id: String!): ContactType
-    contacts(userId: String!): [ContactType]
+    contacts: [ContactType]
   }
 
   type Mutation {
+
+    user(email: String!, password: String!): String
+
     createUser(
       name: String!
       email: String!
       phone: String!
       password: String!
-    ): Boolean
+    ): String
 
     createContact(
-      userId: String!
       firstName: String!
       lastName: String
       email: String!
@@ -41,7 +43,7 @@ const typeDefs = gql`
     ): Boolean
 
     deleteContact(_id: String!): Boolean
-
+    
     updateContact(
       _id: String!
       firstName: String!

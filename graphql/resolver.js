@@ -1,25 +1,24 @@
 const {User,Contact}  =require("../models/model")
-
+const jwt = require("jsonwebtoken");
+require("dotenv").config();
 
 const resolvers = {
+
   Query: {
-    user: async (parent, args) => {
-      const res=await User.findOne({email:args.email,password:args.password})
-      console.log(res)
-      if (res) {
-        return res._id;
+    contact: async (parent, args, { _id }) => {
+      if (!_id) {
+        throw new Error("You must be logged in.");
       }
-      return "Invaid";
+      const res = await Contact.findById(args._id);
+      return res;
     },
 
-    contact: async (parent, args) => {
-      const res= await Contact.findById(args._id)
-       return res;
-    },
-
-    contacts: async (parent, args) => {
-      const res = await Contact.find({userId:args.userId});
-      console.log(res);
+    contacts: async (parent, args, { _id }) => {
+      if (!_id) {
+        throw new Error("You must be logged in.");
+      }
+      const res = await Contact.find({ userId: _id });
+  
       return res;
     },
   },
@@ -32,59 +31,82 @@ const resolvers = {
         phone: args.phone,
         password: args.password,
       });
-      const res=await newUser.save()
+      const res = await newUser.save();
       if (res) {
-        return true;
+        return "Created";
       }
-      return false;
+      throw new Error("Something Wrong...");
     },
 
-    createContact: async (parent, args) => {
+    user: async (parent, args) => {
+      const res = await User.findOne({
+        email: args.email,
+        password: args.password,
+      });
+
+      if (res) {
+        const token = jwt.sign(
+          {_id: res._id},
+          process.env.JWT_KEY,
+          { expiresIn: "2d" }
+        );
+       
+        return token;
+      }
+      throw new Error("Email or Password Wrong...");
+    },
+
+    createContact: async (parent, args, { _id }) => {
+      if (!_id) {
+        throw new Error("You must be logged in.");
+      }
+
       const newContact = new Contact({
-        userId: args.userId,
+        userId: _id,
         firstName: args.firstName,
         lastName: args.lastName,
         email: args.email,
         phone: args.phone,
       });
-      
+
       const res = await newContact.save();
+      if (res) {
+        return true;
+      }
+      throw new Error("Contact Not Created..");
+    },
+
+    deleteContact: async (parent, args, { _id }) => {
+      if (!_id) {
+        throw new Error("You must be logged in.");
+      }
+
+      const res = (await Contact.deleteOne({ _id: args._id })).deletedCount;
       if (res) {
         return true;
       }
       return false;
     },
 
-
-
-    deleteContact: async(parent,args)=>{
-        const res = (await Contact.deleteOne({ _id: args._id })).deletedCount;
-        if (res) {
-          return true;
+    updateContact: async (parent, args, { _id }) => {
+      if (!_id) {
+        throw new Error("You must be logged in.");
+      }
+      const res = await Contact.updateOne(
+        { _id: args._id },
+        {
+          firstName: args.firstName,
+          lastName: args.lastName,
+          email: args.email,
+          phone: args.phone,
         }
-        return false;
+      );
+
+      if (res.modifiedCount) {
+        return true;
+      }
+      return false;
     },
-
-    updateContact:async(parent,args)=>{
-
-        const res = await Contact.updateOne(
-          { _id: args._id },
-          {
-            firstName: args.firstName,
-            lastName: args.lastName,
-            email: args.email,
-            phone: args.phone,
-          }
-        )
-
-        if (res.modifiedCount) {
-          return true;
-        }
-        return false;
-
-        
-    }
-
   },
 };
 
